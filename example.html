@@ -110,16 +110,23 @@
 
 		
 	</head>
-	<body style="background:#ffffff">
+	<body style="background:#000">
 		
-		<div id='surfacePlotDiv'>
+		<div id='surfacePlotDiv' style="width: 600px;">
 			<!-- SurfacePlot goes here... -->
 			
-	    <br>
-        <input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
-        Use webGL
-        <br>
-			
+			<input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
+        	<span style="color: #ffffff">Use webGL</span>
+        	
+	        <br>
+	        <br>
+	        <br>
+	        <span style="color: #ffffff">Drag to rotate.</span>
+	        <br>
+	        <br>
+	        <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
+		</div>
+		
 		<script type='text/javascript'>
 		
 			function isIE()
