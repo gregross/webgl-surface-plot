@@ -112,19 +112,27 @@
 	</head>
 	<body style="background:#000">
 		
-		<div id='surfacePlotDiv' style="width: 600px;">
-			<!-- SurfacePlot goes here... -->
+		<div>
+		  <input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
+            <span style="color: #ffffff">Use webGL</span>
+            
+            <br>
+            <br>
+            <br>
+            <span style="color: #ffffff">Drag to rotate.</span>
+            <br>
+            <br>
+            <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
+		</div>
+		
+		<div>
+			<div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px;">
+				<!-- SurfacePlot goes here... -->
+			</div>
 			
-			<input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
-        	<span style="color: #ffffff">Use webGL</span>
-        	
-	        <br>
-	        <br>
-	        <br>
-	        <span style="color: #ffffff">Drag to rotate.</span>
-	        <br>
-	        <br>
-	        <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
+			<div id='surfacePlotDiv2' style="float: left; width: 450px; height: 450px;">
+	            <!-- another SurfacePlot goes here... -->
+	        </div>
 		</div>
 		
 		<script type='text/javascript'>
@@ -135,6 +143,7 @@
 		    }
 		    
 		    var surfacePlot;
+		    var surfacePlot2;
 			
 			function setUp()
 			{
@@ -142,8 +151,11 @@
 				var numCols = 45;
 				
 				var tooltipStrings = new Array();
+				var tooltipStrings2 = new Array();
 				var values = new Array();
+				var values2 = new Array();
 				var data = {nRows: numRows, nCols: numCols, formattedValues: values};
+				var data2 = {nRows: numRows, nCols: numCols, formattedValues: values2};
 				
 				var d = 360 / numRows;
 				var idx = 0;
@@ -151,21 +163,25 @@
 				for (var i = 0; i < numRows; i++) 
 				{
 					values[i] = new Array();
+					values2[i] = new Array();
 					
 					for (var j = 0; j < numCols; j++)
 					{
-						//var value = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
-						var value = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0));
+						var value = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
+						var value2 = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0));
 						//var value = (Math.sin(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0)) * 1.5;
 						
 						values[i][j] = value / 4.0 + 0.25;
+						values2[i][j] = value2 / 4.0 + 0.25;
 						
 						tooltipStrings[idx] = "x:" + i + ", y:" + j + " = " + value;
+						tooltipStrings2[idx] = "x:" + i + ", y:" + j + " = " + value2;
 						idx++;
 					}
 				}
 
 				surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
+				surfacePlot2 = new SurfacePlot(document.getElementById("surfacePlotDiv2"));
 				
 				// Don't fill polygons in IE. It's too slow.
 				var fillPly = !isIE();
@@ -187,23 +203,32 @@
 				var background = '#ffffff';
 				var axisForeColour = '#000000';
 				var hideFloorPolygons = true;
-				var chartOrigin = {x: 300, y:300};
+				var chartOrigin = {x: 150, y:150};
 				
 				// Options for the basic canvas pliot.
 				var basicPlotOptions = {fillPolygons: fillPly, tooltips: tooltipStrings, renderPoints: renderDataPoints }
+				var basicPlotOptions2 = {fillPolygons: fillPly, tooltips: tooltipStrings2, renderPoints: renderDataPoints }
 				
 				// Options for the webGL plot.
 				var xLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 				var yLabels = [0, 1, 2, 3, 4, 5];
-				var zLabels = [0, 1, 2, 3, 4, 5, 6];
-				var glOptions = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL" /*, autoCalcZScale: true*/};
+				var zLabels = [0, 1, 2, 3, 4, 5, 6]; // These labels ar eused when autoCalcZScale is false;
+				var glOptions = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL" ,autoCalcZScale: false};
 				
 				// Options common to both types of plot.
-				var options = {xPos: 100, yPos: 50, width: 600, height: 500, colourGradient: colours, 
+				var options = {xPos: 0, yPos: 0, width: 400, height: 400, colourGradient: colours, 
 					xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader, 
 					backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
 				
 				surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+				surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions);
+				
+				// Link the two charts for rotation.
+				var plot1 = surfacePlot.getChart();
+				var plot2 = surfacePlot2.getChart();
+				
+				plot1.otherPlots = [plot2];  
+				plot2.otherPlots = [plot1];  
 			}
 			
 			setUp();
@@ -211,6 +236,7 @@
 			function toggleChart(chkbox)
             { 
                 surfacePlot.redraw();
+                surfacePlot2.redraw();
             } 
 			
 		</script>

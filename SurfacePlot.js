@@ -856,8 +856,17 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             
         return enabled && this.initShaders();
     };
+	
+	this.rotate = function(deltaX, deltaY) {
+		var newRotationMatrix = mat4.create();
+        mat4.identity(newRotationMatrix);
+		
+		mat4.rotate(newRotationMatrix, degToRad(deltaX / 2), [0, 1, 0]);
+        mat4.rotate(newRotationMatrix, degToRad(deltaY / 2), [1, 0, 0]);
+        mat4.multiply(newRotationMatrix, rotationMatrix, rotationMatrix);
+	}
     
-    this.handleMouseMove = function(event)
+    this.handleMouseMove = function(event, context)
     {
         
         if (!mouseDown)
@@ -884,6 +893,13 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             mat4.rotate(newRotationMatrix, degToRad(deltaX / 2), [0, 1, 0]);
             mat4.rotate(newRotationMatrix, degToRad(deltaY / 2), [1, 0, 0]);
             mat4.multiply(newRotationMatrix, rotationMatrix, rotationMatrix);
+			
+			if (this.otherPlots) {
+				var numPlots = this.otherPlots.length;
+				for (var i = 0; i < numPlots; i++) {
+				     this.otherPlots[i].rotate(deltaX, deltaY);
+				}
+			}
         }
 
         lastMouseX = newX;
@@ -918,12 +934,12 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 		        lastMouseY = event.clientY;
 		        
 	        	document.onmouseup = self.handleMouseUp;
-	        	document.onmousemove = self.handleMouseMove;
+	        	document.onmousemove = function(event){ self.handleMouseMove(event, self) };//self.handleMouseMove;
 		    };
             
             canvas.onmousedown = handleMouseDown;
             document.onmouseup = this.handleMouseUp;
-            document.onmousemove = this.handleMouseMove;
+            document.onmousemove = function(event){ self.handleMouseMove(event, self) };//this.handleMouseMove;
         }
         
         return canUseWebGL;
