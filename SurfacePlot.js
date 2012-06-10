@@ -1484,7 +1484,7 @@ GLText.prototype.draw = function()
     this.currentShader = this.shaderTextureProgram;
     this.gl.useProgram(this.currentShader);
 	
-	// Enable the vertex array for the current shader.
+	// Enable the vertex arrays for the current shader.
 	this.currentShader.vertexPositionAttribute = this.gl.getAttribLocation(this.currentShader, "aVertexPosition");
     this.gl.enableVertexAttribArray(this.currentShader.vertexPositionAttribute);
     this.currentShader.textureCoordAttribute = this.gl.getAttribLocation(this.currentShader, "aTextureCoord");
@@ -1511,8 +1511,9 @@ GLText.prototype.draw = function()
     this.gl.disable(this.gl.BLEND);
     this.gl.enable(this.gl.DEPTH_TEST);
 	
-	// Disable the vertex array for the current shader.
+	// Disable the vertex arrays for the current shader.
 	this.gl.disableVertexAttribArray(this.currentShader.vertexPositionAttribute);
+	this.gl.disableVertexAttribArray(this.currentShader.textureCoordAttribute);
     
     this.mvPopMatrix(this.surfacePlot);
 };
