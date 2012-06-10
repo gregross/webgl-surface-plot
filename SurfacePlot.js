@@ -684,14 +684,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         this.gl.attachShader(program, fragmentShader);
         this.gl.linkProgram(program);
         
-        program.vertexPositionAttribute = this.gl.getAttribLocation(program, "aVertexPosition");
-        this.gl.enableVertexAttribArray(program.vertexPositionAttribute);
-        
-        program.vertexNormalAttribute =this.gl.getAttribLocation(program, "aVertexNormal");
-        this.gl.enableVertexAttribArray(program.vertexNormalAttribute); 
-        
-        program.vertexColorAttribute = this.gl.getAttribLocation(program, "aVertexColor");
-        this.gl.enableVertexAttribArray(program.vertexColorAttribute);
         program.pMatrixUniform = this.gl.getUniformLocation(program, "uPMatrix");
         program.mvMatrixUniform = this.gl.getUniformLocation(program, "uMVMatrix");
         
@@ -723,11 +715,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
         {
             return false;
         }
-        
-        // Stuff specific to the texture shader.
-        this.shaderTextureProgram.textureCoordAttribute = this.gl.getAttribLocation(this.shaderTextureProgram, "aTextureCoord");
-        this.gl.enableVertexAttribArray(this.shaderTextureProgram.textureCoordAttribute); 
-        this.shaderTextureProgram.samplerUniform = this.gl.getUniformLocation(this.shaderTextureProgram, "uSampler");
         
         return true;
     };
@@ -777,6 +764,21 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     this.drawScene = function()
     {
         this.mvPushMatrix(this);
+		
+		this.gl.useProgram(this.shaderProgram);
+    
+	    // Enable the vertex arrays for the current shader.
+	    this.shaderProgram.vertexPositionAttribute = this.gl.getAttribLocation(this.shaderProgram, "aVertexPosition");
+	    this.gl.enableVertexAttribArray(this.shaderProgram.vertexPositionAttribute);
+	    this.shaderProgram.vertexNormalAttribute = this.gl.getAttribLocation(this.shaderProgram, "aVertexNormal");
+	    this.gl.enableVertexAttribArray(this.shaderProgram.vertexNormalAttribute); 
+	    
+	    this.shaderProgram.vertexColorAttribute = this.gl.getAttribLocation(this.shaderProgram, "aVertexColor");
+	    
+	    if (this.shaderProgram.vertexColorAttribute > -1)
+	        this.gl.enableVertexAttribArray(this.shaderProgram.vertexColorAttribute);
+		
+		
         
         this.gl.viewport(0, 0, this.gl.viewportWidth, this.gl.viewportHeight);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -802,6 +804,11 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
             
             this.gl.uniform3f(this.shaderProgram.directionalColorUniform, 0.8, 0.8, 0.8);
         }
+		
+		// Disable the vertex arrays for the current shader.
+		this.gl.disableVertexAttribArray(this.shaderProgram.vertexPositionAttribute);
+        this.gl.disableVertexAttribArray(this.shaderProgram.vertexNormalAttribute); 
+        this.gl.disableVertexAttribArray(this.shaderProgram.vertexColorAttribute);
         
         this.glAxes.draw();
         this.glSurface.draw();
@@ -1337,7 +1344,7 @@ GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
         if (this.align == "right")
             this.context2D.fillText(text, 512-this.textMetrics.width, 0);
         
-        this.setTextureFromCanvas(this.context2D.canvas, this.texture);
+        this.setTextureFromCanvas(this.context2D.canvas, this.texture, 0);
         
         this.context2D.restore(); 
     };
@@ -1375,7 +1382,9 @@ GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
         // Text texture vertices
         this.textureVertexPositionBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureVertexPositionBuffer);
-        this.gl.vertexAttribPointer(this.shaderTextureProgram.textureCoordAttribute, this.textureVertexPositionBuffer.itemSize, this.gl.FLOAT, false, 0, 0); 
+        this.textureVertexPositionBuffer.itemSize = 3;
+        this.textureVertexPositionBuffer.numItems = 4;
+		this.gl.vertexAttribPointer(this.shaderTextureProgram.textureCoordAttribute, this.textureVertexPositionBuffer.itemSize, this.gl.FLOAT, false, 0, 0); 
         
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureVertexPositionBuffer);
         
@@ -1388,8 +1397,6 @@ GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
             ];
             
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(texturePositionCoords), this.gl.STATIC_DRAW);
-        this.textureVertexPositionBuffer.itemSize = 3;
-        this.textureVertexPositionBuffer.numItems = 4;
         
         // Texture index buffer.
         this.textureVertexIndexBuffer = this.gl.createBuffer();
@@ -1406,6 +1413,8 @@ GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
         // Text textures
         this.vertexTextureCoordBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordBuffer);
+		this.vertexTextureCoordBuffer.itemSize = 2;
+        this.vertexTextureCoordBuffer.numItems = 4;
         this.gl.vertexAttribPointer(this.shaderTextureProgram.textureCoordAttribute,this.vertexTextureCoordBuffer.itemSize, this.gl.FLOAT, false, 0, 0); 
         
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexTextureCoordBuffer);
@@ -1418,8 +1427,6 @@ GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
             ];
             
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(textureCoords), this.gl.STATIC_DRAW);
-        this.vertexTextureCoordBuffer.itemSize = 2;
-        this.vertexTextureCoordBuffer.numItems = 4;
     };
     
     this.initTextBuffers();
@@ -1476,6 +1483,15 @@ GLText.prototype.draw = function()
     // Text
     this.currentShader = this.shaderTextureProgram;
     this.gl.useProgram(this.currentShader);
+	
+	// Enable the vertex array for the current shader.
+	this.currentShader.vertexPositionAttribute = this.gl.getAttribLocation(this.currentShader, "aVertexPosition");
+    this.gl.enableVertexAttribArray(this.currentShader.vertexPositionAttribute);
+    this.currentShader.textureCoordAttribute = this.gl.getAttribLocation(this.currentShader, "aTextureCoord");
+    this.gl.enableVertexAttribArray(this.currentShader.textureCoordAttribute); 
+            
+    this.shaderTextureProgram.samplerUniform = this.gl.getUniformLocation(this.shaderTextureProgram, "uSampler");
+	
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureVertexPositionBuffer);
     this.gl.vertexAttribPointer(this.currentShader.vertexPositionAttribute, this.textureVertexPositionBuffer.itemSize, this.gl.FLOAT, false, 0, 0);
     
@@ -1494,6 +1510,9 @@ GLText.prototype.draw = function()
     // Disable blending for transparency.
     this.gl.disable(this.gl.BLEND);
     this.gl.enable(this.gl.DEPTH_TEST);
+	
+	// Disable the vertex array for the current shader.
+	this.gl.disableVertexAttribArray(this.currentShader.vertexPositionAttribute);
     
     this.mvPopMatrix(this.surfacePlot);
 };
@@ -1654,6 +1673,11 @@ GLAxes.prototype.draw = function()
 {
     this.currentShader = this.shaderProgram;
     this.gl.useProgram(this.currentShader);
+	
+	// Enable the vertex array for the current shader.
+	this.currentShader.vertexPositionAttribute = this.gl.getAttribLocation(this.currentShader, "aVertexPosition");
+    this.gl.enableVertexAttribArray(this.currentShader.vertexPositionAttribute);
+    
     this.gl.uniform3f(this.currentShader.axesColour, 0.0, 0.0, 0.0); // Set the colour of the Major axis lines.
     
     // Major axis lines
@@ -1674,6 +1698,9 @@ GLAxes.prototype.draw = function()
     
     // Render the axis labels.
     var numLabels = this.labels.length;
+	
+	// Enable the vertex array for the current shader.
+	this.gl.disableVertexAttribArray(this.currentShader.vertexPositionAttribute);
     
     for (var i = 0; i < numLabels; i++)
         this.labels[i].draw();
@@ -1810,6 +1837,14 @@ GLSurface.prototype.draw = function()
 {
     this.currentShader = this.shaderProgram;
     this.gl.useProgram(this.currentShader);
+	
+	// Enable the vertex arrays for the current shader.
+	this.currentShader.vertexPositionAttribute = this.gl.getAttribLocation(this.currentShader, "aVertexPosition");
+    this.gl.enableVertexAttribArray(this.currentShader.vertexPositionAttribute);
+    this.currentShader.vertexNormalAttribute = this.gl.getAttribLocation(this.currentShader, "aVertexNormal");
+    this.gl.enableVertexAttribArray(this.currentShader.vertexNormalAttribute); 
+    this.currentShader.vertexColorAttribute = this.gl.getAttribLocation(this.currentShader, "aVertexColor");
+    this.gl.enableVertexAttribArray(this.currentShader.vertexColorAttribute);
     
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.surfaceVertexPositionBuffer);
     this.gl.vertexAttribPointer(this.currentShader.vertexPositionAttribute, this.surfaceVertexPositionBuffer.itemSize, this.gl.FLOAT, false, 0, 0);
@@ -1825,6 +1860,11 @@ GLSurface.prototype.draw = function()
     this.setMatrixUniforms(this.currentShader, this.surfacePlot.pMatrix, this.surfacePlot.mvMatrix);
         
     this.gl.drawElements(this.gl.TRIANGLES, this.surfaceVertexIndexBuffer.numItems, this.gl.UNSIGNED_SHORT, 0);
+	
+	// Disable the vertex arrays for the current shader.
+    this.gl.disableVertexAttribArray(this.currentShader.vertexPositionAttribute);
+    this.gl.disableVertexAttribArray(this.currentShader.vertexNormalAttribute); 
+    this.gl.disableVertexAttribArray(this.currentShader.vertexColorAttribute);
 };
 
 /**
