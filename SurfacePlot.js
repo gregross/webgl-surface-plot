@@ -772,13 +772,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 	    this.gl.enableVertexAttribArray(this.shaderProgram.vertexPositionAttribute);
 	    this.shaderProgram.vertexNormalAttribute = this.gl.getAttribLocation(this.shaderProgram, "aVertexNormal");
 	    this.gl.enableVertexAttribArray(this.shaderProgram.vertexNormalAttribute); 
-	    
 	    this.shaderProgram.vertexColorAttribute = this.gl.getAttribLocation(this.shaderProgram, "aVertexColor");
-	    
-	    if (this.shaderProgram.vertexColorAttribute > -1)
-	        this.gl.enableVertexAttribArray(this.shaderProgram.vertexColorAttribute);
-		
-		
+	    this.gl.enableVertexAttribArray(this.shaderProgram.vertexColorAttribute);
         
         this.gl.viewport(0, 0, this.gl.viewportWidth, this.gl.viewportHeight);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -1289,7 +1284,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
 
 GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
 {
-    this.shaderProgram = surfacePlot.shaderProgram;
     this.shaderTextureProgram = surfacePlot.shaderTextureProgram;
     this.currenShader = null;
     this.gl = surfacePlot.gl;
@@ -1384,6 +1378,7 @@ GLText = function(data3D, text, pos, angle, surfacePlot, axis, align)
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureVertexPositionBuffer);
         this.textureVertexPositionBuffer.itemSize = 3;
         this.textureVertexPositionBuffer.numItems = 4;
+		this.shaderTextureProgram.textureCoordAttribute = this.gl.getAttribLocation(this.shaderTextureProgram, "aTextureCoord");
 		this.gl.vertexAttribPointer(this.shaderTextureProgram.textureCoordAttribute, this.textureVertexPositionBuffer.itemSize, this.gl.FLOAT, false, 0, 0); 
         
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureVertexPositionBuffer);
