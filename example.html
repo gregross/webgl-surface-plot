@@ -137,11 +137,6 @@
 		
 		<script type='text/javascript'>
 		
-			function isIE()
-		    {
-				return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
-		    }
-		    
 		    var surfacePlot;
 		    var surfacePlot2;
 			
@@ -184,7 +179,7 @@
 				surfacePlot2 = new SurfacePlot(document.getElementById("surfacePlotDiv2"));
 				
 				// Don't fill polygons in IE. It's too slow.
-				var fillPly = !isIE();
+				var fillPly = true;
 				
 				// Define a colour gradient.
 				var colour1 = {red:0, green:0, blue:255};

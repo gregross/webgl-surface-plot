@@ -30,10 +30,6 @@ SurfacePlot = function(container)
     }
 };
 
-function isIE()
-{
-    return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
-}
 
 SurfacePlot.prototype.draw = function(data, options, basicPlotOptions, glOptions)
 {
@@ -155,6 +151,29 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     var lastMouseX = null;
     var lastMouseY = null;
     var rotationMatrix = mat4.create();
+	var canvas_support_checked = false;
+	var canvas_supported = true;
+	
+	function getInternetExplorerVersion()    // Returns the version of Internet Explorer or a -1
+    // (indicating the use of another browser).
+    {
+        var rv = -1; // Return value assumes failure.
+        if (navigator.appName == 'Microsoft Internet Explorer') {
+            var ua = navigator.userAgent;
+            var re = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+            if (re.exec(ua) != null) 
+                rv = parseFloat(RegExp.$1);
+        }
+        return rv;
+    }
+    
+    function supports_canvas(){
+        if (canvas_support_checked) return canvas_supported;
+        
+         canvas_support_checked = true;
+         canvas_supported = !!document.createElement('canvas').getContext;
+         return canvas_supported;
+    }
     
     this.init = function()
     {
@@ -363,7 +382,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
                     }
                 }
                 
-                if (!isIE())
+                if (supports_canvas())
                     this.renderAxisText(axes);
             }
     };
@@ -1044,7 +1063,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     {
         canvas = document.createElement("canvas");
         
-        if (isIE())
+        if (!supports_canvas())
         {
             G_vmlCanvasManager.initElement(canvas);
             canvas.style.width = width;
@@ -1198,7 +1217,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement,
     
     function getMousePositionFromEvent(e)
     {
-        if (isIE())
+        if (getInternetExplorerVersion() > -1)
         {
             var e = window.event;
             
