@@ -104,12 +104,16 @@
             <br>
             <br>
             <br>
-            <span style="color: #ffffff">Open a CSV file: </span>
+            <span style="color: #ffffff">(1) Set frames per second: </span><input type="text" id="fps" value=10> <span style="color: #ffffff">Refresh the browser before setting this. </span>
+            <br>
+            <br>
+            <br>
+			<span style="color: #ffffff">(2) Open a CSV file: </span>
             <input type="file" id="filePicker" name="files[]" />
+			<br>
             <br>
             <br>
-            <br>
-            <span style="color: #ffffff">Drag to rotate. Press the shift key and drag the mouse to scale the surface plot.</span>
+            <span style="color: #ffffff">(3) Drag to rotate. Press the shift key and drag the mouse to scale the surface plot.</span>
             <br>
             <br>
         </div>
@@ -244,7 +248,7 @@
                     formattedValues: dataAndLabels.frames,
 					frames: true
                 };
-                
+				
                 surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
                 
                 var fillPly = true;
@@ -302,11 +306,13 @@
                 var xLabels = dataAndLabels.xLabels;
                 var yLabels = dataAndLabels.yLabels;
                 var zLabels = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]; // These labels are used when autoCalcZScale is false;
+                var fps = document.getElementById("fps").value;
                 var glOptions = {
                     xLabels: xLabels,
                     yLabels: yLabels,
                     zLabels: zLabels,
-                    autoCalcZScale: false // This should be set to false since we've normalized our data to [0, 1];
+                    autoCalcZScale: false, // This should be set to false since we've normalized our data to [0, 1];
+                    framesPerSecond: fps
                 };
                 
                 // Options common to both types of plot.

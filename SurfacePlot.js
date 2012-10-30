@@ -847,7 +847,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             
             elapsed = timeNow - lastTime;
             
-            if (elapsed > 100) {
+            if (elapsed > 1000/this.glOptions.framesPerSecond) {
                 if (!this.currentFrame) 
                     this.currentFrame = 1;
                 
