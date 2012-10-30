@@ -2,7 +2,6 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-        <!--[if IE]><script type="text/javascript" src="excanvas.js"></script><![endif]-->
         <script type="text/javascript" src='SurfacePlot.js'>
         </script>
         <script type="text/javascript" src='ColourGradient.js'>
@@ -14,6 +13,8 @@
 		<script type="text/javascript" src="underscore-1.3.1.min.js">
         </script>
         <title>SurfacePlot animation example</title>
+		
+		<!-- The following are the WebGL shaders. -->
 		
         <script id="shader-fs" type="x-shader/x-fragment">
             #ifdef GL_ES
@@ -156,6 +157,18 @@
             
             var surfacePlot;
             
+			/*
+			 * Take the text from the file and place it in a 4-d array.
+			 * The first dimension is time, represented as a frame.
+			 * The subsequent dimensions are the XY-indices and the Z-values.
+			 * 
+			 * The Z-values are normaalized to the [0, 1] interval.
+			 * 
+			 * IMPORTANT - I'm assuming that each fram has exactly the same number of
+			 * X- and Y-values. Since the surface plot is based upon Z-values projected
+			 * above an XY grid, we don't actually care about the actual XY magnitudes.
+			 * They're just labels.
+			 */
             function formatDataForChart(allText){
                 var allTextLines = allText.split(/\r\n|\n/);
                 var headers = allTextLines[0].split(',');
@@ -164,6 +177,8 @@
 				var yValues = [];
 				var zValues = [];
 				var frameIds = [];
+				var maxZValue = Number.MIN_VALUE;
+				var minZValue = Number.MAX_VALUE;
                 
                 for (var i = 1; i < allTextLines.length; i++) {
 					line = allTextLines[i];
@@ -176,6 +191,11 @@
                         zValues.push(data[2]);
                         frameIds.push(data[3]);
 						
+						if (data[2] > maxZValue)
+						  maxZValue = data[2];
+						  
+						if (data[2] < minZValue)
+                          minZValue = data[2];
                     }
                 }
 				
@@ -187,13 +207,15 @@
                 var rows = [];
                 var cols = [];
 				var idx = 0;
+				var normalizedVal;
 				
 				_.forEach(frameIds, function(frameId){
 					rows = [];
 					_.forEach(xValues, function(x){
 						cols = [];
 						_.forEach(yValues, function(y){
-							cols.push(zValues[idx]);
+							normalizedVal = (zValues[idx] - minZValue) / (maxZValue - minZValue);
+							cols.push(normalizedVal);
 							idx++;
 						});
 						rows.push(cols);
@@ -225,7 +247,6 @@
                 
                 surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
                 
-                // Don't fill polygons in IE. It's too slow.
                 var fillPly = true;
                 
                 // Define a colour gradient.
@@ -270,7 +291,7 @@
                     y: 150
                 };
                 
-                // Options for the basic canvas pliot.
+                // Options for the basic canvas plot.
                 var basicPlotOptions = {
                     fillPolygons: fillPly,
                     tooltips: tooltipStrings,
@@ -280,12 +301,12 @@
                 // Options for the webGL plot.
                 var xLabels = dataAndLabels.xLabels;
                 var yLabels = dataAndLabels.yLabels;
-                var zLabels = [0.05, 0.1, 0.15, 0.2, 0.25]; // These labels are used when autoCalcZScale is false;
+                var zLabels = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]; // These labels are used when autoCalcZScale is false;
                 var glOptions = {
                     xLabels: xLabels,
                     yLabels: yLabels,
                     zLabels: zLabels,
-                    autoCalcZScale: true
+                    autoCalcZScale: false // This should be set to false since we've normalized our data to [0, 1];
                 };
                 
                 // Options common to both types of plot.
