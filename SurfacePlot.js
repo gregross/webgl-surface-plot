@@ -1217,6 +1217,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
                 
                 displayTooltip(currentPos);
             }
+			
+		return false;
     };
     
     function isShiftPressed(e){
