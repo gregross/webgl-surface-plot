@@ -1136,6 +1136,11 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             canvas.onmouseout = hideTooltip;
             canvas.onmousedown = this.mouseDownd;
             canvas.onmouseup = this.mouseUpd;
+			
+			canvas.addEventListener("touchstart", this.mouseDownd, false);
+	        canvas.addEventListener("touchmove", this.mouseIsMoving, false);
+	        canvas.addEventListener("touchend", this.mouseUpd, false);
+	        canvas.addEventListener("touchcancel", hideTooltip, false);
         }
         else 
             this.createHiddenCanvasForGLText();
@@ -1256,12 +1261,16 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
                 mousePosX = e.layerX;
                 mousePosY = e.layerY;
             }
-            else 
-                if (e.offsetX || e.offsetX == 0) // Opera
-                {
-                    mousePosX = e.offsetX;
-                    mousePosY = e.offsetY;
-                }
+            else if (e.offsetX || e.offsetX == 0) // Opera
+            {
+                mousePosX = e.offsetX;
+                mousePosY = e.offsetY;
+            }
+			else if (e.touches[0].pageX || e.touches[0].pageX == 0) //touch events
+            {
+                mousePosX = e.touches[0].pageX;
+                mousePosY = e.touches[0].pageY;
+            }
         
         var currentPos = new Point(mousePosX, mousePosY);
         
