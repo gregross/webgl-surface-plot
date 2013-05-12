@@ -115,7 +115,7 @@
         <div>
             <div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px; text-align:center;">
 			
-			    <img src="images/ajax-loader.gif" style="display: none;" id="loading_image">
+			    <img src="images/ajax-loader.gif" style="visibility: hidden;" id="loading_image">
 				
                 <!-- SurfacePlot goes here... -->
             </div>
@@ -129,24 +129,15 @@
                 alert('The File APIs are not fully supported by your browser.');
             }
 			
-			function clearChart() {
-				
-				var container = document.getElementById('surfacePlotDiv');
-				container.innerHTML = "";
-				
-			}
-			
-            
             function handleFileSelect(evt){
 				
 				var loadingGif = document.getElementById("loading_image");
 				
 				if (loadingGif)
-				    loadingGif.style.display = "inline";
+				    loadingGif.style.visibility = "visible";
 				
 				setTimeout(function() {
                 
-	                clearChart();
 	                var files = evt.target.files;
 	                var f = files[0];
 	                
@@ -169,6 +160,9 @@
 	                })(f);
 	                
 	                reader.readAsText(f);
+					
+					if (loadingGif)
+                    loadingGif.style.visibility = "hidden";
 	                
 	            }, 1000);
 				
