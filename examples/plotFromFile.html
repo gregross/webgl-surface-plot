@@ -1,0 +1,367 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+        <script type="text/javascript" src='../javascript/SurfacePlot.js'>
+        </script>
+        <script type="text/javascript" src='../javascript/ColourGradient.js'>
+        </script>
+        <script type="text/javascript" src="../javascript/glMatrix-0.9.5.min.js">
+        </script>
+        <script type="text/javascript" src="../javascript/webgl-utils.js">
+        </script>
+        <script type="text/javascript" src="../javascript/underscore-1.3.1.min.js">
+        </script>
+        <title>SurfacePlot animation example</title>
+        
+        <!-- The following are the WebGL shaders. -->
+        
+        <script id="shader-fs" type="x-shader/x-fragment">
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+            varying vec4 vColor;
+            varying vec3 vLightWeighting;
+            void main(void)
+            {
+            gl_FragColor = vec4(vColor.rgb * vLightWeighting, vColor.a);
+            }
+        </script>
+        
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec3 aVertexPosition;
+            attribute vec3 aVertexNormal;
+            attribute vec4 aVertexColor;
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+            uniform mat3 uNMatrix;
+            varying vec4 vColor;
+            uniform vec3 uAmbientColor;
+            uniform vec3 uLightingDirection;
+            uniform vec3 uDirectionalColor;
+            varying vec3 vLightWeighting;
+            void main(void)
+            { 
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0); 
+            vec3 transformedNormal = uNMatrix * aVertexNormal;  
+            float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0); 
+            vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting; 
+            vColor = aVertexColor;
+            }
+        </script>
+        
+        <script id="axes-shader-fs" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec4 vColor;
+            void main(void)
+            {
+            gl_FragColor = vColor;
+            }
+        </script>
+        
+        <script id="axes-shader-vs" type="x-shader/x-vertex">
+            attribute vec3 aVertexPosition;
+            attribute vec4 aVertexColor;
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+            varying vec4 vColor;
+            uniform vec3 uAxesColour;
+            void main(void) 
+            { 
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);  
+            vColor =  vec4(uAxesColour, 1.0); 
+            } 
+        </script>
+        
+        <script id="texture-shader-fs" type="x-shader/x-fragment">
+            #ifdef GL_ES
+            precision highp float;
+            #endif
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+            void main(void)
+            {
+            gl_FragColor = texture2D(uSampler, vTextureCoord);
+            }
+        </script>
+        
+        <script id="texture-shader-vs" type="x-shader/x-vertex">
+            attribute vec3 aVertexPosition;
+            attribute vec2 aTextureCoord;
+            varying vec2 vTextureCoord;
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix; 
+            void main(void) 
+            {  
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0); 
+            vTextureCoord = aTextureCoord; 
+            }
+        </script>
+        
+    </head>
+    <body style="background:#000">
+        <div>
+            <br>
+            <br>
+            <span style="color: #ffffff">(1) Open a CSV file: </span>
+            <input type="file" id="filePicker" name="files[]" />
+            <br>
+            <br>
+            <br>
+            <span style="color: #ffffff">(2) Drag to rotate. Press the shift key and drag the mouse to scale the surface plot.</span>
+            <br>
+            <br>
+        </div>
+        <div>
+            <div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px; text-align:center;">
+			
+			    <img src="images/ajax-loader.gif" style="display: none;" id="loading_image">
+				
+                <!-- SurfacePlot goes here... -->
+            </div>
+        </div>
+        <script type='text/javascript'>
+            
+			var surfacePlot;
+			
+            // Check for the various File API support.
+            if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
+                alert('The File APIs are not fully supported by your browser.');
+            }
+			
+			function clearChart() {
+				
+				var container = document.getElementById('surfacePlotDiv');
+				container.innerHTML = "";
+				
+			}
+			
+            
+            function handleFileSelect(evt){
+				
+				var loadingGif = document.getElementById("loading_image");
+				
+				if (loadingGif)
+				    loadingGif.style.display = "inline";
+				
+				setTimeout(function() {
+                
+	                clearChart();
+	                var files = evt.target.files;
+	                var f = files[0];
+	                
+	                // Only process CSV files.
+	                if (!f.type.match('text/csv')) {
+	                    alert("Please specify a valid CSV file.");
+	                    return;
+	                }
+	                
+	                var reader = new FileReader();
+	                
+	                // Closure to capture the file information.
+	                reader.onload = (function(theFile){
+	                    return function(e){
+	                    
+	                        var csvData = e.target.result;
+	                        var data = formatDataForChart(csvData, false);
+	                        renderChart(data);
+	                    };
+	                })(f);
+	                
+	                reader.readAsText(f);
+	                
+	            }, 1000);
+				
+            }
+            
+            document.getElementById('filePicker').addEventListener('change', handleFileSelect, false);
+            
+            function formatDataForChart(allText, normalize){
+                var allTextLines = allText.split(/\r\n|\n|\r/);
+                var line;
+                var zValues = [];
+				var data;
+				var rows = allTextLines.length;
+				var cols = 0;
+				var zValue;
+				var sum = 0;
+                
+                for (var i = 0; i < rows; i++) {
+                    line = allTextLines[i];
+                    data = line.split(',');
+                    zValues[i] = [];
+					cols = data.length;
+					
+					for (var j = 0; j < cols; j++) {
+					
+                        zValue = data[j] * 1.0;
+				        zValues[i][j] = zValue;
+						
+						sum += zValue;
+						
+					}
+                }
+				
+				// If normalise is set to true then normalise the data by two standard deviations.
+				if (normalize) {
+					var mean = sum / (rows * cols);
+					var sdev = 0;
+					
+					for (var i = 0; i < rows; i++) {
+					
+						for (var j = 0; j < cols; j++) {
+						
+							sdev += Math.pow(zValues[i][j] - mean, 2);
+							
+						}
+						
+					}
+					
+					sdev = Math.sqrt(sdev / (rows * cols));
+					
+					for (var i = 0; i < rows; i++) {
+					
+						for (var j = 0; j < cols; j++) {
+						
+							zValues[i][j] = (zValues[i][j] - mean) / (2 * sdev);
+							
+						}
+						
+					}
+				}
+				
+				// If the number of rows and columns is too large then plot every nth value.
+				var maxRowsCols = 110;
+				var rowBucketSize = Math.max(Math.floor(rows/maxRowsCols), 1);
+				var columnBucketSize = Math.max(Math.floor(cols/maxRowsCols), 1);
+				var rowIndex = 0;
+				var colIndex = 0;
+				
+				if (rowBucketSize > 1 || columnBucketSize > 1) {
+					
+					var smoothedData = [];
+					
+				    for (var i = 0; i < rows; i += rowBucketSize) {
+						
+						colIndex = 0;
+						smoothedData[rowIndex] = [];
+						
+						for (var j = 0; j < cols; j += columnBucketSize) {
+						
+						  smoothedData[rowIndex][colIndex] = zValues[i][j];
+						  colIndex++;
+						  
+						}
+						
+						rowIndex++;
+                        
+                    }	
+					
+					zValues = smoothedData;
+					
+				}
+                
+                return zValues;
+            }
+            
+            function renderChart(zValues){
+                
+                var numRows = zValues.length;
+                var numCols = zValues[0].length;
+                
+                var values = new Array();
+                var data = {
+                    nRows: numRows,
+                    nCols: numCols,
+                    formattedValues: zValues
+                };
+                
+				if (!surfacePlot)
+                    surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
+                
+                var fillPly = true;
+                
+                // Define a colour gradient.
+                var colour1 = {
+                    red: 0,
+                    green: 0,
+                    blue: 255
+                };
+                var colour2 = {
+                    red: 0,
+                    green: 255,
+                    blue: 255
+                };
+                var colour3 = {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                };
+                var colour4 = {
+                    red: 255,
+                    green: 255,
+                    blue: 0
+                };
+                var colour5 = {
+                    red: 255,
+                    green: 0,
+                    blue: 0
+                };
+                var colours = [colour1, colour2, colour3, colour4, colour5];
+                
+                // Axis labels.
+                var xAxisHeader = "x";
+                var yAxisHeader = "y";
+                var zAxisHeader = "z";
+                
+                var renderDataPoints = false;
+                var background = '#ffffff';
+                var axisForeColour = '#000000';
+                var hideFloorPolygons = true;
+                var chartOrigin = {
+                    x: 150,
+                    y: 150
+                };
+                
+                // Options for the basic canvas plot.
+                var basicPlotOptions = {
+                    fillPolygons: fillPly,
+                    renderPoints: renderDataPoints
+                }
+                
+                // Options for the webGL plot.
+                var xLabels = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+                var yLabels = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+                var zLabels = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]; // These labels are used when autoCalcZScale is false;
+                var glOptions = {
+                    xLabels: xLabels,
+                    yLabels: yLabels,
+                    zLabels: zLabels,
+                    autoCalcZScale: false
+                };
+                
+                // Options common to both types of plot.
+                var options = {
+                    xPos: 0,
+                    yPos: 0,
+                    width: 800,
+                    height: 800,
+                    colourGradient: colours,
+                    xTitle: xAxisHeader,
+                    yTitle: yAxisHeader,
+                    zTitle: zAxisHeader,
+                    backColour: background,
+                    axisTextColour: axisForeColour,
+                    hideFlatMinPolygons: hideFloorPolygons,
+                    origin: chartOrigin
+                };
+                
+                surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+                
+                // Link the two charts for rotation.
+                var plot1 = surfacePlot.getChart();
+            }
+            
+        </script>
+    </body>
+</html>
