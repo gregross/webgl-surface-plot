@@ -51,8 +51,10 @@ SurfacePlot.prototype.draw = function(data, options, basicPlotOptions, glOptions
     var startZAngle = options.startZAngle;
     var zAxisTextPosition = options.zAxisTextPosition;
     
-    if (this.surfacePlot == undefined) 
-        this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, fillPolygons, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour, axisTextColour, hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, zAxisTextPosition, glOptions, data);
+    if (this.surfacePlot) 
+	   this.surfacePlot.cleanUp();
+   
+    this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, fillPolygons, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour, axisTextColour, hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, zAxisTextPosition, glOptions, data);
     
     this.surfacePlot.redraw();
 };

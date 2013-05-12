@@ -131,9 +131,6 @@
 			
 			function clearChart() {
 				
-				if (surfacePlot)
-				    surfacePlot.cleanUp();
-					
 				var container = document.getElementById('surfacePlotDiv');
 				container.innerHTML = "";
 				
@@ -279,7 +276,8 @@
                     formattedValues: zValues
                 };
                 
-                surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
+				if (!surfacePlot)
+                    surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
                 
                 var fillPly = true;
                 
