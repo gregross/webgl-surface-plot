@@ -47,32 +47,40 @@ SurfacePlot.prototype.draw = function(data, options, basicPlotOptions, glOptions
     var hideFlatMinPolygons = options.hideFlatMinPolygons;
     var tooltipColour = options.tooltipColour;
     var origin = options.origin;
-    var startXAngle = options.startXAngle;
-    var startZAngle = options.startZAngle;
+    var startXAngle_canvas = options.startXAngle;
+    var startZAngle_canvas = options.startZAngle;
     var zAxisTextPosition = options.zAxisTextPosition;
     
     if (this.surfacePlot) {
 		
-		var isOpenGL = function() {
-			var openGLSelected = true;
-			if (glOptions.chkControlId && document.getElementById(glOptions.chkControlId)) 
-                openGLSelected = document.getElementById(glOptions.chkControlId).checked;
-				
-			return openGLSelected;
-		}
-		
-		if (glOptions.animate && isOpenGL()) //{
-			var data = this.createFrames(data, glOptions);
-//			this.surfacePlot.reRender(data, glOptions);
-//			return;
-//		}
-//		else {
-			this.surfacePlot.cleanUp();
-			this.containerElement.innerHTML = "";
-//		}
+  		var isOpenGL = function() {
+  			var openGLSelected = true;
+  			if (glOptions.chkControlId && document.getElementById(glOptions.chkControlId)) 
+                  openGLSelected = document.getElementById(glOptions.chkControlId).checked;
+  				
+  			return openGLSelected;
+  		}
+  		
+  		if (glOptions.animate && isOpenGL()) //{
+  			var data = this.createFrames(data, glOptions);
+  //			this.surfacePlot.reRender(data, glOptions);
+  //			return;
+  //		}
+  //		else {
+  			this.surfacePlot.cleanUp();
+  			this.containerElement.innerHTML = "";
+  //		}
+  
+      startXAngle_canvas = this.surfacePlot.currentXAngle_canvas;
+      startZAngle_canvas = this.surfacePlot.currentZAngle_canvas;
+      var rotationMatrix = this.surfacePlot.rotationMatrix;
+  
 	}
    
-    this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, fillPolygons, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour, axisTextColour, hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, zAxisTextPosition, glOptions, data);
+    this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, 
+      fillPolygons, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour, axisTextColour, 
+      hideFlatMinPolygons, tooltipColour, origin, startXAngle_canvas, startZAngle_canvas, rotationMatrix, zAxisTextPosition, 
+      glOptions, data);
     
     this.surfacePlot.redraw();
 };
@@ -229,7 +237,8 @@ SurfacePlot.prototype.cleanUp = function(){
  * This class does most of the work.
  * *********************************
  */
-JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fillRegions, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour, axisTextColour, hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, zAxisTextPosition, glOptions, data){
+JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fillRegions, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour,
+   axisTextColour, hideFlatMinPolygons, tooltipColour, origin, startXAngle_canvas, startZAngle_canvas, rotationMatrix, zAxisTextPosition, glOptions, data){
     this.xTitle = xTitle;
     this.yTitle = yTitle;
     this.zTitle = zTitle;
@@ -242,16 +251,27 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
     var canvasContext = null;
     this.context2D = null;
     var scale = JSSurfacePlot.DEFAULT_SCALE;
-    var currentXAngle = JSSurfacePlot.DEFAULT_X_ANGLE;
-    var currentZAngle = JSSurfacePlot.DEFAULT_Z_ANGLE;
     var zTextPosition = 0.5;
     
-    if (startXAngle != null && startXAngle != void 0) 
-        currentXAngle = startXAngle;
+    if (startXAngle_canvas != null && startXAngle_canvas != void 0) 
+        this.currentXAngle_canvas = startXAngle_canvas;
+    else
+      this.currentXAngle_canvas = JSSurfacePlot.DEFAULT_X_ANGLE_CANVAS;
     
-    if (startZAngle != null && startZAngle != void 0) 
-        currentZAngle = startZAngle;
-    
+    if (startZAngle_canvas != null && startZAngle_canvas != void 0) 
+        this.currentZAngle_canvas = startZAngle_canvas;
+    else
+        this.currentZAngle_canvas = JSSurfacePlot.DEFAULT_Z_ANGLE_CANVAS;
+        
+    if (rotationMatrix != null && rotationMatrix != void 0) 
+      this.rotationMatrix = rotationMatrix;
+    else { 
+      this.rotationMatrix = mat4.create();
+      mat4.identity(this.rotationMatrix);
+      mat4.rotate(this.rotationMatrix, degToRad(JSSurfacePlot.DEFAULT_X_ANGLE_WEBGL), [1, 0, 0]);
+      mat4.rotate(this.rotationMatrix, degToRad(JSSurfacePlot.DEFAULT_Y_ANGLE_WEBGL), [0, 0, 1]);
+    }
+      
     if (zAxisTextPosition != null && zAxisTextPosition != void 0) 
         zTextPosition = zAxisTextPosition;
     
@@ -295,7 +315,6 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
     var mouseDown = false;
     var lastMouseX = null;
     var lastMouseY = null;
-    var rotationMatrix = mat4.create();
     var canvas_support_checked = false;
     var canvas_supported = true;
     
@@ -438,9 +457,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             targetElement.removeChild(targetDiv);
         
         id = this.allocateId();
-        mat4.identity(rotationMatrix);
-        mat4.rotate(rotationMatrix, degToRad(-70), [1, 0, 0]);
-        mat4.rotate(rotationMatrix, degToRad(-42), [0, 0, 1]);
+        
         transformation = new Th3dtran();
         
         this.createTargetDiv();
@@ -566,7 +583,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             var marginY = minMargin;
             
             transformation.init();
-            transformation.rotate(currentXAngle, 0.0, currentZAngle);
+            transformation.rotate(this.currentXAngle_canvas, 0.0, this.currentZAngle_canvas);
             transformation.scale(scale);
             
             if (origin != null && origin != void 0) 
@@ -1085,7 +1102,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
         
         mat4.translate(this.mvMatrix, [0.0, -0.3, -19.0]);
         
-        mat4.multiply(this.mvMatrix, rotationMatrix);
+        mat4.multiply(this.mvMatrix, this.rotationMatrix);
         
         var useLighting = true;
         
@@ -1174,7 +1191,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
         
         mat4.rotate(newRotationMatrix, degToRad(deltaX / 2), [0, 1, 0]);
         mat4.rotate(newRotationMatrix, degToRad(deltaY / 2), [1, 0, 0]);
-        mat4.multiply(newRotationMatrix, rotationMatrix, rotationMatrix);
+        mat4.multiply(newRotationMatrix, this.rotationMatrix, this.rotationMatrix);
     }
     
     this.handleMouseMove = function(event, context){
@@ -1195,13 +1212,13 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
         {
             var s = deltaY < 0 ? 1.05 : 0.95;
             mat4.scale(newRotationMatrix, [s, s, s]);
-            mat4.multiply(newRotationMatrix, rotationMatrix, rotationMatrix);
+            mat4.multiply(newRotationMatrix, this.rotationMatrix, this.rotationMatrix);
         }
         else // rotate
         {
             mat4.rotate(newRotationMatrix, degToRad(deltaX / 2), [0, 1, 0]);
             mat4.rotate(newRotationMatrix, degToRad(deltaY / 2), [1, 0, 0]);
-            mat4.multiply(newRotationMatrix, rotationMatrix, rotationMatrix);
+            mat4.multiply(newRotationMatrix, this.rotationMatrix, this.rotationMatrix);
             
             if (this.otherPlots) {
                 var numPlots = this.otherPlots.length;
@@ -1551,10 +1568,10 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
     }
     
     this.calculateRotation = function(e){
-        lastMousePos = new Point(JSSurfacePlot.DEFAULT_Z_ANGLE, JSSurfacePlot.DEFAULT_X_ANGLE);
+        lastMousePos = new Point(this.currentZAngle_canvas, this.currentXAngle_canvas);
         
         if (mouseButton1Up == null) {
-            mouseButton1Up = new Point(JSSurfacePlot.DEFAULT_Z_ANGLE, JSSurfacePlot.DEFAULT_X_ANGLE);
+            mouseButton1Up = new Point(this.currentZAngle_canvas, this.currentXAngle_canvas);
         }
         
         if (mouseButton1Down != null) {
@@ -1562,8 +1579,8 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
  mouseButton1Up.y + (mouseButton1Down.y - e.y));
         }
         
-        currentZAngle = lastMousePos.x % 360;
-        currentXAngle = lastMousePos.y % 360;
+        this.currentZAngle_canvas = lastMousePos.x % 360;
+        this.currentXAngle_canvas = lastMousePos.y % 360;
         
         closestPointToMouse = null;
         this.render();
@@ -2752,8 +2769,10 @@ log = function(base, value){
     return Math.log(value) / Math.log(base);
 };
 
-JSSurfacePlot.DEFAULT_X_ANGLE = 47;
-JSSurfacePlot.DEFAULT_Z_ANGLE = 47;
+JSSurfacePlot.DEFAULT_X_ANGLE_CANVAS = 47;
+JSSurfacePlot.DEFAULT_Z_ANGLE_CANVAS = 47;
+JSSurfacePlot.DEFAULT_X_ANGLE_WEBGL = -70;
+JSSurfacePlot.DEFAULT_Y_ANGLE_WEBGL = -42;
 JSSurfacePlot.DATA_DOT_SIZE = 5;
 JSSurfacePlot.DEFAULT_SCALE = 350;
 JSSurfacePlot.MIN_SCALE = 50;
