@@ -112,33 +112,39 @@
 	</head>
 	<body style="background:#000">
 		
-		<div>
-		  <input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
-            <span style="color: #ffffff">Use webGL</span>
-            
-            <br>
-            <br>
-            <br>
-            <span style="color: #ffffff">Drag to rotate.</span>
-            <br>
-            <br>
-            <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
-		</div>
-		
-		<div style="clear: right;">
-			<div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px;">
-				<!-- SurfacePlot goes here... -->
+		<div style="margin-left: 50px;">
+			<div>
+			  <br>
+			  <input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
+	            <span style="color: #ffffff">Use webGL</span>
+	            
+	            <br>
+	            <br>
+	            <br>
+	            <span style="color: #ffffff">Drag to rotate.</span>
+	            <br>
+	            <br>
+	            <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
 			</div>
 			
-			<div id='surfacePlotDiv2' style="float: left; width: 450px; height: 450px;">
-	            <!-- another SurfacePlot goes here... -->
-	        </div>
-		</div>
-		
-		<div style="clear: both;">
-			<form action="">
-				<input type="button" name="animate" value="animate" onclick="animateCharts();">>
-			</form>
+			<div style="clear: right;">
+				<div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px; border:1px solid red; background: #fff;">
+					<!-- SurfacePlot goes here... -->
+				</div>
+				
+				<div id='surfacePlotDiv2' style="float: left; width: 450px; height: 450px; border:1px solid red; background: #fff;">
+		            <!-- another SurfacePlot goes here... -->
+		        </div>
+			</div>
+			
+			<div style="clear: both;">
+			     <br>
+                <br>
+				<form action="">
+					<input type="button" name="animate" value="animate" onclick="animateCharts();"> 
+					<span style="color: #ffffff">(applies to webGL only)</span>
+				</form>
+			</div>
 		</div>
 		
 		<script type='text/javascript'>
