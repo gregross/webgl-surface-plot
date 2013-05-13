@@ -125,7 +125,7 @@
             <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
 		</div>
 		
-		<div>
+		<div style="clear: right;">
 			<div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px;">
 				<!-- SurfacePlot goes here... -->
 			</div>
@@ -135,10 +135,17 @@
 	        </div>
 		</div>
 		
+		<div style="clear: both;">
+			<form action="">
+				<input type="button" name="animate" value="animate" onclick="animateCharts();">>
+			</form>
+		</div>
+		
 		<script type='text/javascript'>
 		
 		    var surfacePlot;
 		    var surfacePlot2;
+			var data, data2, options, basicPlotOptions, basicPlotOptions2, glOptions, glOptions2, animated, plot1, plot2, values, values2;
 			
 			function setUp()
 			{
@@ -147,10 +154,10 @@
 				
 				var tooltipStrings = new Array();
 				var tooltipStrings2 = new Array();
-				var values = new Array();
-				var values2 = new Array();
-				var data = {nRows: numRows, nCols: numCols, formattedValues: values};
-				var data2 = {nRows: numRows, nCols: numCols, formattedValues: values2};
+				values = new Array();
+				values2 = new Array();
+				data = {nRows: numRows, nCols: numCols, formattedValues: values};
+				data2 = {nRows: numRows, nCols: numCols, formattedValues: values2};
 				
 				var d = 360 / numRows;
 				var idx = 0;
@@ -164,7 +171,6 @@
 					{
 						var value = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
 						var value2 = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0));
-						//var value = (Math.sin(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0)) * 1.5;
 						
 						values[i][j] = value / 4.0 + 0.25;
 						values2[i][j] = value2 / 4.0 + 0.25;
@@ -178,7 +184,7 @@
 				surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
 				surfacePlot2 = new SurfacePlot(document.getElementById("surfacePlotDiv2"));
 				
-				// Don't fill polygons in IE. It's too slow.
+				// Don't fill polygons in IE < v9. It's too slow.
 				var fillPly = true;
 				
 				// Define a colour gradient.
@@ -201,37 +207,64 @@
 				var chartOrigin = {x: 150, y:150};
 				
 				// Options for the basic canvas pliot.
-				var basicPlotOptions = {fillPolygons: fillPly, tooltips: tooltipStrings, renderPoints: renderDataPoints }
-				var basicPlotOptions2 = {fillPolygons: fillPly, tooltips: tooltipStrings2, renderPoints: renderDataPoints }
+				basicPlotOptions = {fillPolygons: fillPly, tooltips: tooltipStrings, renderPoints: renderDataPoints }
+				basicPlotOptions2 = {fillPolygons: fillPly, tooltips: tooltipStrings2, renderPoints: renderDataPoints }
 				
 				// Options for the webGL plot.
 				var xLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 				var yLabels = [0, 1, 2, 3, 4, 5];
 				var zLabels = [0, 1, 2, 3, 4, 5, 6]; // These labels ar eused when autoCalcZScale is false;
-				var glOptions = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL" ,autoCalcZScale: false};
+				glOptions = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL", autoCalcZScale: false, animate: true};
+				glOptions2 = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL", autoCalcZScale: false, animate: true};
 				
 				// Options common to both types of plot.
-				var options = {xPos: 0, yPos: 0, width: 400, height: 400, colourGradient: colours, 
+				options = {xPos: 0, yPos: 0, width: 400, height: 400, colourGradient: colours, 
 					xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader, 
 					backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
 				
 				surfacePlot.draw(data, options, basicPlotOptions, glOptions);
-				surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions);
+				surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
+				
+				coordinateCharts();
+				
+			}
+			
+			function coordinateCharts() {
 				
 				// Link the two charts for rotation.
-				var plot1 = surfacePlot.getChart();
-				var plot2 = surfacePlot2.getChart();
+                plot1 = surfacePlot.getChart();
+                plot2 = surfacePlot2.getChart();
+                
+                plot1.otherPlots = [plot2];  
+                plot2.otherPlots = [plot1];  
 				
-				plot1.otherPlots = [plot2];  
-				plot2.otherPlots = [plot1];  
+			}
+			
+			function animateCharts() {
+				
+				if (!animated) {
+					surfacePlot.draw(data2, options, basicPlotOptions2, glOptions2);
+					surfacePlot2.draw(data, options, basicPlotOptions, glOptions);
+					animated = true;
+				}
+				else {
+					surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+					surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
+					animated = false;
+				}
+				
+				coordinateCharts();
+				
 			}
 			
 			setUp();
 			
 			function toggleChart(chkbox)
             { 
-                surfacePlot.redraw();
-                surfacePlot2.redraw();
+                surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+                surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
+				
+				coordinateCharts();
             } 
 			
 		</script>

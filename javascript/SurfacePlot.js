@@ -52,14 +52,166 @@ SurfacePlot.prototype.draw = function(data, options, basicPlotOptions, glOptions
     var zAxisTextPosition = options.zAxisTextPosition;
     
     if (this.surfacePlot) {
-		this.surfacePlot.cleanUp();
-		this.containerElement.innerHTML = "";
+		
+		var isOpenGL = function() {
+			var openGLSelected = true;
+			if (glOptions.chkControlId && document.getElementById(glOptions.chkControlId)) 
+                openGLSelected = document.getElementById(glOptions.chkControlId).checked;
+				
+			return openGLSelected;
+		}
+		
+		if (glOptions.animate && isOpenGL()) //{
+			var data = this.createFrames(data, glOptions);
+//			this.surfacePlot.reRender(data, glOptions);
+//			return;
+//		}
+//		else {
+			this.surfacePlot.cleanUp();
+			this.containerElement.innerHTML = "";
+//		}
 	}
    
     this.surfacePlot = new JSSurfacePlot(xPos, yPos, w, h, colourGradient, this.containerElement, fillPolygons, tooltips, xTitle, yTitle, zTitle, renderPoints, backColour, axisTextColour, hideFlatMinPolygons, tooltipColour, origin, startXAngle, startZAngle, zAxisTextPosition, glOptions, data);
     
     this.surfacePlot.redraw();
 };
+
+Array.prototype.clone = function() {
+    var arr = this.slice(0);
+    for( var i = 0; i < this.length; i++ ) {
+        if( this[i].clone ) {
+            arr[i] = this[i].clone();
+        }
+    }
+    return arr;
+}
+
+/*
+ * Given the current plot and its data, if the number of rows and columns in the new data
+ * are the same as the current then we can interpolate a number of frames between the two
+ * data sets. We can then animate the transition from displaying the old surface to the new one.
+ */
+SurfacePlot.prototype.createFrames = function(newData, glOptions) {
+	
+	var currentData = this.surfacePlot.data;
+	var numRows = newData.nRows;
+    var numCols = newData.nCols;
+	var currentValues = this.originalFormattedValues ? this.originalFormattedValues : currentData.formattedValues;
+    var newValues = newData.formattedValues;
+	this.originalFormattedValues = newValues.clone();
+	var self = this;
+	
+	var canInterpolateFrames = function() {
+		return currentData.nRows == newData.nRows && currentData.nCols == newData.nCols &&
+		  currentValues.length == newValues.length;
+	};
+	
+	var getDiff = function(value1, value2) {
+		if (value1 == 0)
+            diff = value2;
+        else if (value2 == 0)
+            diff = value1;
+        else if (value2 > value1)
+            diff = value2 / value1;
+        else if (value1 > value2)
+            diff = value1 / value2;
+        else
+            diff = 0;
+            
+        if (diff < 0)
+            diff *= -1;
+            
+        diff -= 1;
+		
+		return diff;
+	};
+	
+	var getMaxZvalueDiff = function() {
+		
+		var maxDiff = 0;
+		var diff = 0;
+		var currentValue, newValue;
+		
+		for (var i = 0; i < numRows; i++) {
+			for (var j = 0; j < numCols; j++) {
+				
+				currentValue = currentValues[i][j];
+				newValue = newValues[i][j];
+				
+				var diff = getDiff(newValue, currentValue);
+				
+				if (diff > maxDiff) 
+					maxDiff = diff;
+			}
+		}
+		
+		return maxDiff;
+		
+	};
+	
+	if (canInterpolateFrames) {
+		
+		var maxDiff = getMaxZvalueDiff();
+		
+		if (maxDiff <= 0) 
+		  return newData;
+		  
+		var numFrames = Math.min(10, Math.floor( maxDiff ));
+		
+		if (numFrames == 0)
+		  return newData;
+		  
+		var rows = [];
+		var cols = [];
+		var frames = [];
+		  
+		for (var f = 0; f < numFrames; f++) {
+			
+			rows = [];
+			
+			for (var i = 0; i < numRows; i++) {
+				
+				cols = [];
+				
+				for (var j = 0; j < numCols; j++) {
+				
+				    currentValue = currentValues[i][j];
+                    newValue = newValues[i][j];
+					
+					var diff = newValue - currentValue;
+					
+					if (diff == 0) 
+						cols.push(newValue);
+					else {
+						var increment = (diff / numFrames) * (f+1);
+						var interpolatedValue = currentValue + increment;
+						cols.push(interpolatedValue);
+					}
+				
+				}
+				
+				rows.push(cols);
+				
+			}
+			
+			frames.push(rows);
+			
+		}
+		
+		var dataCopy = JSON.parse(JSON.stringify(newData));
+		
+		dataCopy.frames = true;
+		dataCopy.formattedValues = frames;
+		glOptions.framesPerSecond = 60;
+		
+		return dataCopy;
+		
+	}
+	
+	return newData;
+	
+}
 
 SurfacePlot.prototype.getChart = function(){
     return this.surfacePlot;
@@ -147,6 +299,118 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
     var canvas_support_checked = false;
     var canvas_supported = true;
     
+	this.reRender = function(data, glOptions) {
+		
+		this.bail = true;
+		this.glOptions = glOptions;
+		this.data = data;
+		this.dataToRender = this.data.formattedValues;
+        this.frames = this.data.frames;
+        this.determineMinMaxZValues();
+        
+        if (!this.useWebGL) {
+            var maxAxisValue = this.nice_num(this.maxZValue);
+            this.scaleAndNormalise(this.maxZValue / maxAxisValue);
+        }
+        else {
+            if (this.glOptions.autoCalcZScale) 
+                this.calculateZScale();
+            
+            this.glOptions.xTicksNum = this.glOptions.xLabels.length - 1;
+            this.glOptions.yTicksNum = this.glOptions.yLabels.length - 1;
+            this.glOptions.zTicksNum = this.glOptions.zLabels.length - 1;
+        }
+		
+		var cGradient;
+        
+        if (colourGradient) 
+            cGradient = colourGradient;
+        else 
+            cGradient = getDefaultColourRamp();
+        
+        this.colourGradientObject = new ColourGradient(this.minZValue, this.maxZValue, cGradient);
+        
+        var canvasWidth = width;
+        var canvasHeight = height;
+        
+        var minMargin = 20;
+        var drawingDim = canvasWidth - minMargin * 2;
+        var marginX = minMargin;
+        var marginY = minMargin;
+        
+        if (canvasWidth > canvasHeight) {
+            drawingDim = canvasHeight - minMargin * 2;
+            marginX = (canvasWidth - drawingDim) / 2;
+        }
+        else 
+            if (canvasWidth < canvasHeight) {
+                drawingDim = canvasWidth - minMargin * 2;
+                marginY = (canvasHeight - drawingDim) / 2;
+            }
+        
+        var xDivision = 1 / (this.numXPoints - 1);
+        var yDivision = 1 / (this.numYPoints - 1);
+        var xPos, yPos;
+        var i, j;
+        var numPoints = this.numXPoints * this.numYPoints;
+        data3ds = new Array();
+        dataframe = new Array();
+        var index = 0;
+        var colIndex;
+        
+        if (this.frames) {
+            for (var k = 0; k < this.numFrames; k++) {
+                index = 0;
+                dataframe = new Array();
+                for (i = 0, xPos = -0.5; i < this.numXPoints; i++, xPos += xDivision) {
+                    for (j = 0, yPos = 0.5; j < this.numYPoints; j++, yPos -= yDivision) {
+                        var x = xPos;
+                        var y = yPos;
+                        
+                        if (this.useWebGL) 
+                            colIndex = this.numYPoints - 1 - j;
+                        else 
+                            colIndex = j;
+                        
+                        dataframe[index] = new Point3D(x, y, this.dataToRender[k][i][colIndex]); // Reverse the y-axis to match the non-webGL surface.
+                        index++;
+                    }
+                }
+                data3ds.push(dataframe);
+            }
+        }
+        else {
+            for (i = 0, xPos = -0.5; i < this.numXPoints; i++, xPos += xDivision) {
+                for (j = 0, yPos = 0.5; j < this.numYPoints; j++, yPos -= yDivision) {
+                    var x = xPos;
+                    var y = yPos;
+                    
+                    if (this.useWebGL) 
+                        colIndex = this.numYPoints - 1 - j;
+                    else 
+                        colIndex = j;
+                    
+                    data3ds[index] = new Point3D(x, y, this.dataToRender[i][colIndex]); // Reverse the y-axis to match the non-webGL surface.
+                    index++;
+                }
+            }
+        }
+		
+		var r = hexToR(this.backColour) / 255;
+        var g = hexToG(this.backColour) / 255;
+        var b = hexToB(this.backColour) / 255;
+        
+        this.initWorldObjects(data3ds);
+		
+		this.gl.clearColor(r, g, b, 0); // Set the background colour.
+        this.gl.enable(this.gl.DEPTH_TEST);
+			
+	   this.allFramesRendered = false;
+	   this.bail = false;
+	   this.tick();
+		
+	}
+	
     function getInternetExplorerVersion() // Returns the version of Internet Explorer or a -1
     // (indicating the use of another browser).
     {
@@ -845,22 +1109,25 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
         
         this.glAxes.draw();
         
-        if (this.frames) {
+        if (this.frames && !this.allFramesRendered) {
         
             var timeNow = new Date().getTime();
             
             elapsed = timeNow - lastTime;
             
             if (elapsed > 1000/this.glOptions.framesPerSecond) {
-                if (!this.currentFrame) 
+                if (!this.currentFrame) {
                     this.currentFrame = 1;
+				}
                 
                 this.glSurface.updateSurface(data3ds[this.currentFrame]);
                 
                 if (this.currentFrame < this.numFrames - 1) 
-                    this.currentFrame++;
-                else 
-                    this.currentFrame = 0;
+					this.currentFrame++;
+				else {
+					this.allFramesRendered = true;
+					this.currentFrame = 0;
+				}
 					
 				lastTime = timeNow;
             }
@@ -882,7 +1149,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             return;
         
         var animator = function(){
-            if (self.gl == null) 
+            if (self.gl == null || self.bail) 
                 return;
             
             self.drawScene();
