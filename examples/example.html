@@ -1,279 +1,411 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML>
 <html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-		<!--[if IE]><script type="text/javascript" src="excanvas.js"></script><![endif]-->
-		<script type="text/javascript" src='../javascript/SurfacePlot.js'></script>
-		<script type="text/javascript" src='../javascript/ColourGradient.js'></script>
-		
-		<script type="text/javascript" src="../javascript/glMatrix-0.9.5.min.js"></script>
-        <script type="text/javascript" src="../javascript/webgl-utils.js"></script>
-		
-		<title>SurfacePlot test stub</title>
-		
-		<script id="shader-fs" type="x-shader/x-fragment">
+    <head>
+        <script type="text/javascript" src='../javascript/SurfacePlot.js'>
+        </script>
+        <script type="text/javascript" src='../javascript/ColourGradient.js'>
+        </script>
+        <script type="text/javascript" src="../javascript/glMatrix-0.9.5.min.js">
+        </script>
+        <script type="text/javascript" src="../javascript/webgl-utils.js">
+        </script>
+        <script type="text/javascript" src="../javascript/parser.js">
+        </script>
+        <!-- WeKno -->
+        <style>
+            #box1 {
+                width: 400px;
+                height: 20px;
+                color: #fff;
+				float: left;
+				margin: 15px;
+            }
+            
+            #box2 {
+                width: 400px;
+                height: 20px;
+                color: #fff;
+				float: left; 
+				margin-left: 5px; 
+				margin-top: 15px; 
+            }
+            
+        </style>
+        <title>SurfacePlot test stub</title>
+        <script id="shader-fs" type="x-shader/x-fragment">
             #ifdef GL_ES
             precision highp float;
             #endif
-            
             varying vec4 vColor;
             varying vec3 vLightWeighting;
-            
             void main(void)
             {
-            	gl_FragColor = vec4(vColor.rgb * vLightWeighting, vColor.a);
+            gl_FragColor = vec4(vColor.rgb * vLightWeighting, vColor.a);
             }
         </script>
-        
         <script id="shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
             attribute vec3 aVertexNormal;
             attribute vec4 aVertexColor;
-            
             uniform mat4 uMVMatrix;
             uniform mat4 uPMatrix;
             uniform mat3 uNMatrix;
             varying vec4 vColor;
-            
             uniform vec3 uAmbientColor;
             uniform vec3 uLightingDirection;
             uniform vec3 uDirectionalColor;
             varying vec3 vLightWeighting;
-            
             void main(void)
             {
-                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-                
-                vec3 transformedNormal = uNMatrix * aVertexNormal;
-                float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
-                vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting; 
-
-                vColor = aVertexColor;
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vec3 transformedNormal = uNMatrix * aVertexNormal;
+            float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
+            vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
+            vColor = aVertexColor;
             }
         </script>
-        
         <script id="axes-shader-fs" type="x-shader/x-fragment">
             precision mediump float;
-			varying vec4 vColor;
-			
-			void main(void)
-			{
-				gl_FragColor = vColor;
-			}
+            varying vec4 vColor;
+            void main(void)
+            {
+            gl_FragColor = vColor;
+            }
         </script>
-        
         <script id="axes-shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
-			attribute vec4 aVertexColor;
-			uniform mat4 uMVMatrix;
-			uniform mat4 uPMatrix;
-			varying vec4 vColor;
-			uniform vec3 uAxesColour;
-			
-			void main(void)
-			{
-				gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-				vColor =  vec4(uAxesColour, 1.0);
-			} 
+            attribute vec4 aVertexColor;
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+            varying vec4 vColor;
+            uniform vec3 uAxesColour;
+            void main(void)
+            {
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vColor =  vec4(uAxesColour, 1.0);
+            }
         </script>
-        
-		<script id="texture-shader-fs" type="x-shader/x-fragment">
+        <script id="texture-shader-fs" type="x-shader/x-fragment">
             #ifdef GL_ES
             precision highp float;
             #endif
-            
             varying vec2 vTextureCoord;
-            
             uniform sampler2D uSampler;
-            
             void main(void)
             {
-                gl_FragColor = texture2D(uSampler, vTextureCoord);
+            gl_FragColor = texture2D(uSampler, vTextureCoord);
             }
         </script>
-        
         <script id="texture-shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
-            
             attribute vec2 aTextureCoord;
             varying vec2 vTextureCoord;
-            
             uniform mat4 uMVMatrix;
             uniform mat4 uPMatrix;
-            
             void main(void)
             {
-                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-                vTextureCoord = aTextureCoord; 
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vTextureCoord = aTextureCoord;
             }
         </script>
-
+    </head>
+    <body style="background:#000; font-family: Arial, Arial sans-serif; font-style: normal">
+	
+        <div style="margin-left: 20px;">
+            <br>
+            <br>
+            <input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
+			<span style="color: #fff">
+				Use webGL 
+		    </span>
+			
+			<span style="color: #aaa">
+                (rendering defaults to HTML5 canvas if your browser does not support WebGL) <br><br>
+            </span>
+			
+			<span style="color: #fff">
+                Modify either expression below then press enter to update the surface plots. Drag to rotate. Press the shift key and drag the mouse to scale the surface plot.
+            </span>
+			
+        </div>
 		
-	</head>
-	<body style="background:#000">
+		<br><br>
 		
-		<div style="margin-left: 50px;">
-			<div>
-			  <br>
-			  <input id="allowWebGL" type="checkbox" checked="" onclick="toggleChart(this)">
-	            <span style="color: #ffffff">Use webGL</span>
-	            
-	            <br>
-	            <br>
-	            <br>
-	            <span style="color: #ffffff">Drag to rotate.</span>
-	            <br>
-	            <br>
-	            <span style="color: #ffffff">Press the shift key and drag the mouse to scale the surface plot.</span>
+		<div style="clear: right;">
+            <div id="box1">
+                <LABEL for="code1">
+                    f(x,y): 
+                </LABEL>
+                <input type="text" id="code1" name="Function1" size="60" maxlength="70" spellcheck="false" value="cos(x*PI/180)*cos(y*PI/180) + sin(x*PI/180)" onChange='newplot("code1")'/><!-- newplot():   there should start a new Canvas / WebGL- Plot      WeKno -->
+            </div>
+            
+            <div id="box2">
+                <LABEL for="code2">
+                    f(x,y): 
+                </LABEL>
+                <input type="text" id="code2" name="Function2" size="60" maxlength="70" spellcheck="false" value="cos(x*PI/180)*cos(y*PI/180)" onChange='newplot("code2")'/><!-- newplot(): there should start a new Canvas / WebGL- Plot      WeKno -->
+            </div>
+        </div>
+		
+        <div style="clear: both;">
+            <div>
+				<div id='surfacePlotDiv' style="float: left; margin: 15px; width: 400px; height: 400px; border:1px solid red; background: #fff;">
+	                <!-- SurfacePlot goes here... -->
+	            </div>
 			</div>
-			
-			<div style="clear: right;">
-				<div id='surfacePlotDiv' style="float: left; width: 450px; height: 450px; border:1px solid red; background: #fff;">
-					<!-- SurfacePlot goes here... -->
-				</div>
-				
-				<div id='surfacePlotDiv2' style="float: left; width: 450px; height: 450px; border:1px solid red; background: #fff;">
-		            <!-- another SurfacePlot goes here... -->
-		        </div>
-			</div>
-			
-			<div style="clear: both;">
-			     <br>
-                <br>
-				<form action="">
-					<input type="button" name="animate" value="animate" onclick="animateCharts();"> 
-					<span style="color: #ffffff">(applies to webGL only)</span>
-				</form>
-			</div>
-		</div>
+            <div id='surfacePlotDiv2' style="float: left; margin-left: 5px; margin-top: 15px; width: 400px; height: 400px; border:1px solid red; background: #fff;">
+                <!-- another SurfacePlot goes here... -->
+            </div>
+        </div>
 		
-		<script type='text/javascript'>
-		
-		    var surfacePlot;
-		    var surfacePlot2;
-			var data, data2, options, basicPlotOptions, basicPlotOptions2, glOptions, glOptions2, animated, plot1, plot2, values, values2;
+        <div style="clear: both;">
+            <br>
+            <form action="1">
+                <span style="color: #fff; margin-left: 15px">
+				    <input type="button" name="animate" value="animate" onclick="animateCharts();">
+				</span>
+				
+				<span style="color: #aaa" margin-left: 15px>
+					(applies to webGL only)
+				</span>
+				
+				<span style="color: #fff; margin-left: 15px">   
+				    <br><br>
+                    Thanks to Werner Knobloch for his contribution to this example.
+				</span>
+            </form>
 			
-			function setUp()
-			{
-				var numRows = 45;
-				var numCols = 45;
-				
-				var tooltipStrings = new Array();
-				var tooltipStrings2 = new Array();
-				values = new Array();
-				values2 = new Array();
-				data = {nRows: numRows, nCols: numCols, formattedValues: values};
-				data2 = {nRows: numRows, nCols: numCols, formattedValues: values2};
-				
-				var d = 360 / numRows;
-				var idx = 0;
-				
-				for (var i = 0; i < numRows; i++) 
-				{
-					values[i] = new Array();
-					values2[i] = new Array();
-					
-					for (var j = 0; j < numCols; j++)
-					{
-						var value = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0) + Math.sin(i * d * Math.PI / 180.0));
-						var value2 = (Math.cos(i * d * Math.PI / 180.0) * Math.cos(j * d * Math.PI / 180.0));
-						
-						values[i][j] = value / 4.0 + 0.25;
-						values2[i][j] = value2 / 4.0 + 0.25;
-						
-						tooltipStrings[idx] = "x:" + i + ", y:" + j + " = " + value;
-						tooltipStrings2[idx] = "x:" + i + ", y:" + j + " = " + value2;
-						idx++;
-					}
-				}
-
-				surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
-				surfacePlot2 = new SurfacePlot(document.getElementById("surfacePlotDiv2"));
-				
-				// Don't fill polygons in IE < v9. It's too slow.
-				var fillPly = true;
-				
-				// Define a colour gradient.
-				var colour1 = {red:0, green:0, blue:255};
-				var colour2 = {red:0, green:255, blue:255};
-				var colour3 = {red:0, green:255, blue:0};
-				var colour4 = {red:255, green:255, blue:0};
-				var colour5 = {red:255, green:0, blue:0};
-				var colours = [colour1, colour2, colour3, colour4, colour5];
-				
-				// Axis labels.
-				var xAxisHeader	= "X-axis";
-				var yAxisHeader	= "Y-axis";
-				var zAxisHeader	= "Z-axis";
-				
-				var renderDataPoints = false;
-				var background = '#ffffff';
-				var axisForeColour = '#000000';
-				var hideFloorPolygons = true;
-				var chartOrigin = {x: 150, y:150};
-				
-				// Options for the basic canvas pliot.
-				basicPlotOptions = {fillPolygons: fillPly, tooltips: tooltipStrings, renderPoints: renderDataPoints }
-				basicPlotOptions2 = {fillPolygons: fillPly, tooltips: tooltipStrings2, renderPoints: renderDataPoints }
-				
-				// Options for the webGL plot.
-				var xLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-				var yLabels = [0, 1, 2, 3, 4, 5];
-				var zLabels = [0, 1, 2, 3, 4, 5, 6]; // These labels ar eused when autoCalcZScale is false;
-				glOptions = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL", autoCalcZScale: false, animate: true};
-				glOptions2 = {xLabels: xLabels, yLabels: yLabels, zLabels: zLabels, chkControlId: "allowWebGL", autoCalcZScale: false, animate: true};
-				
-				// Options common to both types of plot.
-				options = {xPos: 0, yPos: 0, width: 400, height: 400, colourGradient: colours, 
-					xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader, 
-					backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
-				
-				surfacePlot.draw(data, options, basicPlotOptions, glOptions);
-				surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
-				
-				coordinateCharts();
-				
-			}
+        </div>
+        <script type='text/javascript'>
+            
+			// WeKno
+            var canvas_height = ComputedStyleValue('surfacePlotDiv', 'height');
+            var canvas_width = ComputedStyleValue('surfacePlotDiv', 'width');
 			
-			function coordinateCharts() {
-				
-				// Link the two charts for rotation.
+            var surfacePlot;
+            var surfacePlot2;
+            var data, data2, options, basicPlotOptions, basicPlotOptions2, glOptions, glOptions2, animated, plot1, plot2, values, values2;
+            
+            var numRows = 45;
+            var numCols = 45;
+            
+            var tooltipStrings = new Array();
+            var tooltipStrings2 = new Array();
+            
+            function setUp(){
+            
+                values = new Array();
+                values2 = new Array();
+                
+                data = {
+                    nRows: numRows,
+                    nCols: numCols,
+                    formattedValues: values
+                };
+                data2 = {
+                    nRows: numRows,
+                    nCols: numCols,
+                    formattedValues: values2
+                };
+                
+                surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"));
+                surfacePlot2 = new SurfacePlot(document.getElementById("surfacePlotDiv2"));
+                
+                // Don't fill polygons in IE < v9. It's too slow.
+                var fillPly = true;
+                
+                // Define a colour gradient.
+                var colour1 = {
+                    red: 0,
+                    green: 0,
+                    blue: 255
+                };
+                var colour2 = {
+                    red: 0,
+                    green: 255,
+                    blue: 255
+                };
+                var colour3 = {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                };
+                var colour4 = {
+                    red: 255,
+                    green: 255,
+                    blue: 0
+                };
+                var colour5 = {
+                    red: 255,
+                    green: 0,
+                    blue: 0
+                };
+                var colours = [colour1, colour2, colour3, colour4, colour5];
+                
+                // Axis labels.
+                var xAxisHeader = "X-axis";
+                var yAxisHeader = "Y-axis";
+                var zAxisHeader = "Z-axis";
+                
+                var renderDataPoints = false;
+                var background = '#ffffff';
+                var axisForeColour = '#000000';
+                var hideFloorPolygons = true;
+                
+                var chartOrigin = {
+                    x: 200,
+                    y: 265
+                };
+                
+                // Options for the basic canvas plot.
+                basicPlotOptions = {
+                    fillPolygons: fillPly,
+                    tooltips: tooltipStrings,
+                    renderPoints: renderDataPoints
+                }
+                basicPlotOptions2 = {
+                    fillPolygons: fillPly,
+                    tooltips: tooltipStrings2,
+                    renderPoints: renderDataPoints
+                }
+                
+                // Options for the webGL plot.
+                var xLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                var yLabels = [0, 1, 2, 3, 4, 5];
+                var zLabels = [0, 1, 2, 3, 4, 5, 6];
+                
+                // These labels are used when autoCalcZScale is false;
+                glOptions = {
+                    xLabels: xLabels,
+                    yLabels: yLabels,
+                    zLabels: zLabels,
+                    chkControlId: "allowWebGL",
+                    autoCalcZScale: false,
+                    animate: true
+                };
+                
+                glOptions2 = {
+                    xLabels: xLabels,
+                    yLabels: yLabels,
+                    zLabels: zLabels,
+                    chkControlId: "allowWebGL",
+                    autoCalcZScale: false,
+                    animate: true
+                };
+                
+                // Options common to both types of plot.
+                options = {
+                    xPos: 0,
+                    yPos: 0,
+                    width: canvas_width,
+                    height: canvas_height,
+                    colourGradient: colours,
+                    xTitle: xAxisHeader,
+                    yTitle: yAxisHeader,
+                    zTitle: zAxisHeader,
+                    backColour: background,
+                    axisTextColour: axisForeColour,
+                    hideFlatMinPolygons: hideFloorPolygons,
+                    origin: chartOrigin
+                };
+                
+                newplot('code1');
+                newplot('code2');
+                
+                coordinateCharts();
+            }
+            
+            function coordinateCharts(){
+                // Link the two charts for rotation.
+                
                 plot1 = surfacePlot.getChart();
                 plot2 = surfacePlot2.getChart();
                 
-                plot1.otherPlots = [plot2];  
-                plot2.otherPlots = [plot1];  
-				
-			}
-			
-			function animateCharts() {
-				
-				if (!animated) {
-					surfacePlot.draw(data2, options, basicPlotOptions2, glOptions2);
-					surfacePlot2.draw(data, options, basicPlotOptions, glOptions);
-					animated = true;
-				}
-				else {
-					surfacePlot.draw(data, options, basicPlotOptions, glOptions);
-					surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
-					animated = false;
-				}
-				
-				coordinateCharts();
-				
-			}
-			
-			setUp();
-			
-			function toggleChart(chkbox)
-            { 
+                if (!plot1 || !plot2) 
+                    return;
+                
+                plot1.otherPlots = [plot2];
+                plot2.otherPlots = [plot1];
+            }
+            
+            function animateCharts(){
+                if (!animated) {
+                    surfacePlot.draw(data2, options, basicPlotOptions2, glOptions2);
+                    surfacePlot2.draw(data, options, basicPlotOptions, glOptions);
+                    animated = true;
+                }
+                else {
+                    surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+                    surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
+                    animated = false;
+                }
+                coordinateCharts();
+            }
+            
+            setUp();
+            
+            function toggleChart(chkbox){
                 surfacePlot.draw(data, options, basicPlotOptions, glOptions);
                 surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
-				
-				coordinateCharts();
-            } 
-			
-		</script>
-		
-	</body>
+                
+                coordinateCharts();
+            }
+            
+            // ================== parser, evaluator ========================== WeKno
+            
+            function Demoparse(ID_result, ID_code, valueArray, toolTips){
+                var el, expr;
+                el = document.getElementById(ID_result)
+                expr = document.getElementById(ID_code).value;
+                expr = Parser.parse(expr);
+                var result;
+                var idx = 0;
+                var d = 360 / numRows;
+                
+                for (var x = 0; x < numRows; x++) {
+                
+                    valueArray[x] = new Array();
+                    
+                    for (var y = 0; y < numCols; y++) {
+                    
+                        result = expr.simplify({
+                            x: x * d,
+                            y: y * d
+                        });
+                        
+                        result = result.evaluate();
+                        
+                        valueArray[x][y] = result / 4.0 + 0.25;
+                        
+                        toolTips[idx] = "x:" + x + ", y:" + y + " = " + result;
+                        idx++;
+                        
+                    }
+                    
+                }
+                
+            }
+            
+            function newplot(ID_code){
+            
+                if (ID_code == 'code1') {
+                    Demoparse('result1', 'code1', values, tooltipStrings);
+                    surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+                }
+                else {
+                    Demoparse('result2', 'code2', values2, tooltipStrings2);
+                    surfacePlot2.draw(data2, options, basicPlotOptions2, glOptions2);
+                }
+                
+                coordinateCharts();
+                
+            }
+            
+            function ComputedStyleValue(ID, property)// WeKno
+            {
+                var e = document.getElementById(ID);
+                return (window.getComputedStyle(e, null).getPropertyValue(property));
+            }
+        </script>
+    </body>
 </html>
