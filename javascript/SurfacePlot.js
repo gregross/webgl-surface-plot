@@ -1077,6 +1077,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
     
     // WebGL mouse handlers:
     var shiftPressed = false;
+    var altPressed = false;
     
     this.handleMouseUp = function(event){
         mouseDown = false;
@@ -1214,6 +1215,14 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             mat4.scale(newRotationMatrix, [s, s, s]);
             mat4.multiply(newRotationMatrix, this.rotationMatrix, this.rotationMatrix);
         }
+        else if (altPressed) {
+          
+            var dy = deltaY/250*-1;
+            var dx = deltaX/250;
+            mat4.translate(newRotationMatrix, [dx, dy, 0]);
+            mat4.multiply(newRotationMatrix, this.rotationMatrix, this.rotationMatrix);
+          
+        }
         else // rotate
         {
             mat4.rotate(newRotationMatrix, degToRad(deltaX / 2), [0, 1, 0]);
@@ -1251,6 +1260,7 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             
             var handleMouseDown = function(event){
                 shiftPressed = isShiftPressed(event);
+                altPressed = isAltPressed(event);
                 
                 mouseDown = true;
                 lastMouseX = event.clientX;
@@ -1259,14 +1269,14 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
                 document.onmouseup = self.handleMouseUp;
                 document.onmousemove = function(event){
                     self.handleMouseMove(event, self)
-                };//self.handleMouseMove;
+                };
             };
             
             canvas.onmousedown = handleMouseDown;
             document.onmouseup = this.handleMouseUp;
             document.onmousemove = function(event){
                 self.handleMouseMove(event, self)
-            };//this.handleMouseMove;
+            };
         }
         
         return canUseWebGL;
@@ -1526,6 +1536,22 @@ JSSurfacePlot = function(x, y, width, height, colourGradient, targetElement, fil
             }
             
             if (shiftPressed) 
+                return true;
+        }
+        
+        return false;
+    }
+    
+    function isAltPressed(e){
+        var altPressed = 0;
+        
+        if (parseInt(navigator.appVersion) > 3) {
+            var evt = navigator.appName == "Netscape" ? e : event;
+            
+            // NEWER BROWSERS [CROSS-PLATFORM]
+            altPressed = evt.altKey;
+            
+            if (altPressed) 
                 return true;
         }
         
