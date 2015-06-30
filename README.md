@@ -1,4 +1,4 @@
-# 3D Surface Plotting in JavaScript`!` #
+# 3D Surface Plotting in JavaScript! #
 
 created by Greg Ross
 
@@ -65,11 +65,3 @@ See also...<br>
 <h3><i><b><a href='http://code.google.com/p/javascript-surface-plot/'>JavaScript 3D surface plotting</a>.</b></i></h3>
 
 <b>A pure JavaScript implementation of a 3D surface plot</b>
-
-<hr />
-
-<a href='http://itunes.apple.com/gb/app/claptrax/id427145886?mt=8'><img src='http://www.grvisualisation.50webs.com/images/clapForMusic/SplashViewPhone.png' /></a>
-
-<hr />
-
-<a href='http://ax.itunes.apple.com/gb/app/peekaboo-3d/id380735126?mt=8'><img src='http://www.grvisualisation.50webs.com/images/peekaboo/PeekabooAd.png' /></a>
