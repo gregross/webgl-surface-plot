@@ -14,7 +14,7 @@ Tested in Chrome, Firefox, Opera and Safari. See example.html in the download.
 
 ## See [here](http://webgl-surface-plot.googlecode.com/svn/trunk/examples/example.html) for a working example. Also, see the [jsFiddle](http://jsfiddle.net/4N7jQ/1/) example. ##
 
-<img src='https://github.com/gregross/webgl-surface-plot/blob/master/examples/images/screenshot1.png'>
+<img src='examples/images/screenshot1.png'>
 
 ## Features ##
 
