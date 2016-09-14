@@ -12,7 +12,7 @@ Download the code and take a look at example.html to see how.
 
 Tested in Chrome, Firefox, Opera and Safari. See example.html in the download.
 
-## See [here](http://webgl-surface-plot.googlecode.com/svn/trunk/examples/example.html) for a working example. Also, see the [jsFiddle](http://jsfiddle.net/4N7jQ/1/) example. ##
+## See [here](http://webgl-surface-plot.googlecode.com/svn/trunk/examples/example.html) for a working example. Also, see the [jsFiddle](http://jsfiddle.net/4N7jQ/609/) example. ##
 
 <img src='examples/images/screenshot1.png'>
 
